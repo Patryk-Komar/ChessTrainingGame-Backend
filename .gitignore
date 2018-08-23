@@ -1,0 +1,8 @@
+# Dependency directory
+node_modules
+
+# Application build
+dist
+
+# API keys and secrets
+.env
