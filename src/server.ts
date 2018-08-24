@@ -1,16 +1,18 @@
 // Getting required dependencies
 
 import bodyParser from "body-parser";
-import dotenv from "dotenv";
 import express from "express";
 import http from "http";
 
 
+// Importing configuration files
+
+import environmentConfig from "./config/environment";
+
+
 // Creating application instance
 
-dotenv.config({path: "./.env"});
-
-const port = process.env.PORT || 3000;
+const port = environmentConfig.port || 3000;
 
 const app = express();
 
@@ -18,8 +20,15 @@ app.set("port", port);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.get("*", (req, res) => {
-    res.send("Website index.");
+
+// Setting website endpoints
+
+import usersRouter from "./routes/users";
+
+app.use("/users", usersRouter);
+
+app.get("*", (request, response) => {
+    response.send("Website index.");
 });
 
 
