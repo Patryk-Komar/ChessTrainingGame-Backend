@@ -5,15 +5,9 @@ import express from "express";
 const statisticsRouter = express.Router();
 
 
-// Connecting to MySQL database
+// Importing MySQL database connection
 
 import connection from "../database/connection";
-
-connection.connect((error) => {
-    if (error) {
-        console.log(`MySQL connection error: ${error}`);
-    }
-});
 
 
 // Main statistics API endpoint

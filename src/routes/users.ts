@@ -5,15 +5,14 @@ import express from "express";
 const usersRouter = express.Router();
 
 
-// Connecting to MySQL database
+// Importing configuration files
+
+import databaseConfig from "../config/database";
+
+
+// Importing MySQL database connection
 
 import connection from "../database/connection";
-
-connection.connect((error) => {
-    if (error) {
-        console.log(`MySQL connection error: ${error}`);
-    }
-});
 
 
 // Main users API endpoint
@@ -135,7 +134,11 @@ usersRouter.post("/signUp", (request, response) => {
                         content: "Not Acceptable"
                     });
                 } else {
-                    bcrypt.hash(password, 10, (error, hash) => {
+                    const {
+                        passwordHashRounds
+                    } = databaseConfig.users;
+                    const rounds = parseInt(passwordHashRounds, 10);
+                    bcrypt.hash(password, rounds, (error, hash) => {
                         if (error) {
                             response.send({
                                 code: 500,
@@ -143,19 +146,57 @@ usersRouter.post("/signUp", (request, response) => {
                             });
                         } else {
                             connection.query({
-                                sql: `INSERT INTO users (username, email, password, firstname, lastname) VALUES (?, ?, ?, ?, ?)`,
-                                timeout: 5000,
-                                values: [username, email, hash, firstName, lastName]
-                            }, (error) => {
+                                sql: `SELECT secret FROM users`,
+                                timeout: 5000
+                            }, (error, results) => {
                                 if (error) {
                                     response.send({
                                         code: 500,
                                         content: "Internal Server Error"
                                     });
                                 } else {
-                                    response.send({
-                                        code: 200,
-                                        content: "Success"
+                                    const {
+                                        hashCharset,
+                                        hashLength
+                                    } = databaseConfig.users;
+
+                                    let activationHash = "";
+                                    let secretAlreadyExists = false;
+
+                                    while (activationHash === "" || secretAlreadyExists) {
+                                        for (let i = 0; i < parseInt(hashLength, 10); i++) {
+                                            const randomCharNumber = Math.floor(Math.random() * hashCharset.length);
+                                            activationHash += hashCharset[randomCharNumber];
+                                        }
+                                        for (const row of results) {
+                                            if (row.secret === activationHash) {
+                                                secretAlreadyExists = true;
+                                            }
+                                        }
+                                    }
+
+                                    connection.query({
+                                        sql: `INSERT INTO users (username, email, password, firstname, lastname, secret) VALUES (?, ?, ?, ?, ?, ?)`,
+                                        timeout: 5000,
+                                        values: [
+                                            username,
+                                            email, hash,
+                                            firstName,
+                                            lastName,
+                                            activationHash]
+                                    }, (error) => {
+                                        if (error) {
+                                            response.send({
+                                                code: 500,
+                                                content: "Internal Server Error",
+                                                e: error
+                                            });
+                                        } else {
+                                            response.send({
+                                                code: 200,
+                                                content: "Success"
+                                            });
+                                        }
                                     });
                                 }
                             });
@@ -170,6 +211,92 @@ usersRouter.post("/signUp", (request, response) => {
             content: "Bad Request"
         });
     }
+});
+
+
+// Account activation
+
+usersRouter.get("/signUp/activation/:secret", (request, response) => {
+    const {
+        secret
+    } = request.params;
+
+    connection.query({
+        sql: `SELECT COUNT(*) FROM users WHERE secret = ? AND registered IS NULL`,
+        timeout: 5000,
+        values: [
+            secret
+        ]
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            const countProperty = "COUNT(*)";
+            if (results[0][countProperty] === 1) {
+                connection.query({
+                    sql: `SELECT secret FROM users`,
+                    timeout: 5000
+                }, (error, results) => {
+                    if (error) {
+                        response.send({
+                            code: 500,
+                            content: "Internal Server Error"
+                        });
+                    } else {
+                        const {
+                            hashCharset,
+                            hashLength
+                        } = databaseConfig.users;
+
+                        let newSecret = "";
+                        let secretAlreadyExists = false;
+
+                        while (newSecret === "" || secretAlreadyExists) {
+                            for (let i = 0; i < parseInt(hashLength, 10); i++) {
+                                const randomCharNumber = Math.floor(Math.random() * hashCharset.length);
+                                newSecret += hashCharset[randomCharNumber];
+                            }
+                            for (const row of results) {
+                                if (row.secret === newSecret) {
+                                    secretAlreadyExists = true;
+                                }
+                            }
+                        }
+
+                        connection.query({
+                            sql: `UPDATE users SET secret = ?, registered = NOW() WHERE secret = ?`,
+                            timeout: 5000,
+                            values: [
+                                newSecret,
+                                secret
+                            ]
+                        }, (error) => {
+                            if (error) {
+                                response.send({
+                                    code: 500,
+                                    content: "Internal Server Error"
+                                });
+                            } else {
+                                response.send({
+                                    code: 200,
+                                    content: "Success"
+                                });
+                            }
+                        });
+
+                    }
+                });
+            } else {
+                response.send({
+                    code: 400,
+                    content: "Bad Request"
+                });
+            }
+        }
+    });
 });
 
 

@@ -10,7 +10,7 @@ const environmentConfig = {
         name: process.env.DATABASE_NAME,
         charset: process.env.DATABASE_CHARSET
     },
-    port: process.env.PORT
+    port: process.env.APPLICATION_PORT
 };
 
 export default environmentConfig;

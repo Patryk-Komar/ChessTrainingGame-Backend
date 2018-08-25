@@ -21,6 +21,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 
+// Connecting to MySQL database
+
+import connection from "./database/connection";
+
+connection.connect((error) => {
+    if (error) {
+        console.log(`MySQL connection error: ${error}`);
+    }
+});
+
+
 // Setting website endpoints
 
 import usersRouter from "./routes/users";
