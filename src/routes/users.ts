@@ -23,64 +23,6 @@ usersRouter.get("/", (request, response) => {
 });
 
 
-// Registered users number
-
-usersRouter.get("/statistics/registered", (request, response) => {
-    connection.query({
-        sql: `SELECT COUNT(*) FROM users`,
-        timeout: 5000
-    }, (error, results) => {
-        if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
-        } else {
-            const countProperty = "COUNT(*)";
-            response.send({
-                code: 200,
-                content: "Success",
-                data: {
-                    count: results[0][countProperty]
-                }
-            });
-        }
-    });
-});
-
-
-// Online users number
-
-usersRouter.get("/statistics/online", (request, response) => {
-    connection.query({
-        sql: `SELECT online FROM users`,
-        timeout: 5000
-    }, (error, results) => {
-        if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
-        } else {
-            let onlineUsers = 0;
-            const date = Date.now();
-            for (const row of results) {
-                if (date - row.online <= 300000) {
-                    onlineUsers++;
-                }
-            }
-            response.send({
-                code: 200,
-                content: "Success",
-                data: {
-                    online: onlineUsers
-                }
-            });
-        }
-    });
-});
-
-
 // Username availability
 
 usersRouter.get("/signUp/username/:username", (request, response) => {

@@ -24,8 +24,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // Setting website endpoints
 
 import usersRouter from "./routes/users";
+import statisticsRouter from "./routes/statistics";
 
 app.use("/users", usersRouter);
+app.use("/statistics", statisticsRouter);
 
 app.get("*", (request, response) => {
     response.send("Website index.");
