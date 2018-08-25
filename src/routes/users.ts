@@ -25,7 +25,7 @@ usersRouter.get("/", (request, response) => {
 
 // Registered users number
 
-usersRouter.get("/stats/registered", (request, response) => {
+usersRouter.get("/statistics/registered", (request, response) => {
     connection.query({
         sql: `SELECT COUNT(*) FROM users`,
         timeout: 5000
@@ -51,7 +51,7 @@ usersRouter.get("/stats/registered", (request, response) => {
 
 // Online users number
 
-usersRouter.get("/stats/online", (request, response) => {
+usersRouter.get("/statistics/online", (request, response) => {
     connection.query({
         sql: `SELECT online FROM users`,
         timeout: 5000
@@ -81,13 +81,87 @@ usersRouter.get("/stats/online", (request, response) => {
 });
 
 
+// Username availability
+
+usersRouter.get("/signUp/username/:username", (request, response) => {
+    const {
+        username
+    } = request.params;
+
+    connection.query({
+        sql: `SELECT COUNT(*) FROM users WHERE username = ?`,
+        timeout: 5000,
+        values: [
+            username
+        ]
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            const countProperty = "COUNT(*)";
+            if (results[0][countProperty] === 0) {
+                response.send({
+                    code: 200,
+                    content: "Success"
+                });
+            } else {
+                response.send({
+                    code: 406,
+                    content: "Not acceptable"
+                });
+            }
+        }
+    });
+});
+
+
+// Email address availability
+
+usersRouter.get("/signUp/email/:email", (request, response) => {
+    const {
+        email
+    } = request.params;
+
+    connection.query({
+        sql: `SELECT COUNT(*) FROM users WHERE email = ?`,
+        timeout: 5000,
+        values: [
+            email
+        ]
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            const countProperty = "COUNT(*)";
+            if (results[0][countProperty] === 0) {
+                response.send({
+                    code: 200,
+                    content: "Success"
+                });
+            } else {
+                response.send({
+                    code: 406,
+                    content: "Not acceptable"
+                });
+            }
+        }
+    });
+});
+
+
 // New user registration
 
 import bcrypt from "bcrypt";
 
 import User from "../models/user";
 
-usersRouter.post("/new", (request, response) => {
+usersRouter.post("/signUp", (request, response) => {
     const {
         username,
         email,
