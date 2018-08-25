@@ -23,6 +23,64 @@ usersRouter.get("/", (request, response) => {
 });
 
 
+// Registered users number
+
+usersRouter.get("/stats/registered", (request, response) => {
+    connection.query({
+        sql: `SELECT COUNT(*) FROM users`,
+        timeout: 5000
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            const countProperty = "COUNT(*)";
+            response.send({
+                code: 200,
+                content: "Success",
+                data: {
+                    count: results[0][countProperty]
+                }
+            });
+        }
+    });
+});
+
+
+// Online users number
+
+usersRouter.get("/stats/online", (request, response) => {
+    connection.query({
+        sql: `SELECT online FROM users`,
+        timeout: 5000
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            let onlineUsers = 0;
+            const date = Date.now();
+            for (const row of results) {
+                if (date - row.online <= 300000) {
+                    onlineUsers++;
+                }
+            }
+            response.send({
+                code: 200,
+                content: "Success",
+                data: {
+                    online: onlineUsers
+                }
+            });
+        }
+    });
+});
+
+
 // New user registration
 
 import bcrypt from "bcrypt";
@@ -44,7 +102,10 @@ usersRouter.post("/new", (request, response) => {
         connection.query({
             sql: `SELECT * FROM users WHERE username = ? OR email = ?`,
             timeout: 5000,
-            values: [username, email]
+            values: [
+                username,
+                email
+            ]
         }, (error, results) => {
             if (error) {
                 response.send({
@@ -94,5 +155,116 @@ usersRouter.post("/new", (request, response) => {
         });
     }
 });
+
+
+// Credentials verification by username
+
+usersRouter.get("/signIn/username/:username/:password", (request, response) => {
+    const {
+        username,
+        password
+    } = request.params;
+
+    connection.query({
+        sql: `SELECT password from users WHERE username = ?`,
+        timeout: 5000,
+        values: [
+            username
+        ]
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            if (results.length === 1) {
+                const [
+                    user
+                ] = results;
+
+                bcrypt.compare(password, user.password, (error, success) => {
+                    if (error) {
+                        response.send({
+                            code: 500,
+                            content: "Internal Server Error"
+                        });
+                    } else if (success) {
+                        response.send({
+                            code: 200,
+                            content: "Success"
+                        });
+                    } else {
+                        response.send({
+                            code: 406,
+                            content: "Not acceptable"
+                        });
+                    }
+                });
+            } else {
+                response.send({
+                    code: 406,
+                    content: "Not acceptable"
+                });
+            }
+        }
+    });
+});
+
+
+// Credentials verification by email
+
+usersRouter.get("/signIn/email/:email/:password", (request, response) => {
+    const {
+        email,
+        password
+    } = request.params;
+
+    connection.query({
+        sql: `SELECT password from users WHERE username = ?`,
+        timeout: 5000,
+        values: [
+            email
+        ]
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else {
+            if (results.length === 1) {
+                const [
+                    user
+                ] = results;
+
+                bcrypt.compare(password, user.password, (error, success) => {
+                    if (error) {
+                        response.send({
+                            code: 500,
+                            content: "Internal Server Error"
+                        });
+                    } else if (success) {
+                        response.send({
+                            code: 200,
+                            content: "Success"
+                        });
+                    } else {
+                        response.send({
+                            code: 406,
+                            content: "Not acceptable"
+                        });
+                    }
+                });
+            } else {
+                response.send({
+                    code: 406,
+                    content: "Not acceptable"
+                });
+            }
+        }
+    });
+});
+
 
 export default usersRouter;
