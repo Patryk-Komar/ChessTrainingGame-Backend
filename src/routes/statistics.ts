@@ -5,9 +5,10 @@ import express from "express";
 const statisticsRouter = express.Router();
 
 
-// Importing MySQL database connection
+// Importing MySQL database configuration files
 
 import connection from "../database/connection";
+import databaseConfig from "../config/database";
 
 
 // Main statistics API endpoint
@@ -20,9 +21,12 @@ statisticsRouter.get("/", (request, response) => {
 // registered users number
 
 statisticsRouter.get("/registeredUsers", (request, response) => {
+    const {
+        requestTimeout
+    } = databaseConfig;
     connection.query({
         sql: `SELECT COUNT(*) FROM users`,
-        timeout: 5000
+        timeout: requestTimeout
     }, (error, results) => {
         if (error) {
             response.send({
@@ -46,9 +50,12 @@ statisticsRouter.get("/registeredUsers", (request, response) => {
 // Online users number
 
 statisticsRouter.get("/onlineUsers", (request, response) => {
+    const {
+        requestTimeout
+    } = databaseConfig;
     connection.query({
         sql: `SELECT online FROM users`,
-        timeout: 5000
+        timeout: requestTimeout
     }, (error, results) => {
         if (error) {
             response.send({

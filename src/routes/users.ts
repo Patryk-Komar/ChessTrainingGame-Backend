@@ -5,14 +5,10 @@ import express from "express";
 const usersRouter = express.Router();
 
 
-// Importing configuration files
-
-import databaseConfig from "../config/database";
-
-
-// Importing MySQL database connection
+// Importing MySQL database configuration files
 
 import connection from "../database/connection";
+import databaseConfig from "../config/database";
 
 
 // Main users API endpoint
@@ -29,9 +25,13 @@ usersRouter.get("/signUp/username/:username", (request, response) => {
         username
     } = request.params;
 
+    const {
+        requestTimeout
+    } = databaseConfig;
+
     connection.query({
         sql: `SELECT COUNT(*) FROM users WHERE username = ?`,
-        timeout: 5000,
+        timeout: requestTimeout,
         values: [
             username
         ]
@@ -66,9 +66,13 @@ usersRouter.get("/signUp/email/:email", (request, response) => {
         email
     } = request.params;
 
+    const {
+        requestTimeout
+    } = databaseConfig;
+
     connection.query({
         sql: `SELECT COUNT(*) FROM users WHERE email = ?`,
-        timeout: 5000,
+        timeout: requestTimeout,
         values: [
             email
         ]
@@ -114,9 +118,14 @@ usersRouter.post("/signUp", (request, response) => {
     const newUser = new User(username, email, password, firstName, lastName);
 
     if (newUser.validate()) {
+
+        const {
+            requestTimeout
+        } = databaseConfig;
+
         connection.query({
             sql: `SELECT * FROM users WHERE username = ? OR email = ?`,
-            timeout: 5000,
+            timeout: requestTimeout,
             values: [
                 username,
                 email
@@ -147,7 +156,7 @@ usersRouter.post("/signUp", (request, response) => {
                         } else {
                             connection.query({
                                 sql: `SELECT secret FROM users`,
-                                timeout: 5000
+                                timeout: requestTimeout
                             }, (error, results) => {
                                 if (error) {
                                     response.send({
@@ -177,7 +186,7 @@ usersRouter.post("/signUp", (request, response) => {
 
                                     connection.query({
                                         sql: `INSERT INTO users (username, email, password, firstname, lastname, secret) VALUES (?, ?, ?, ?, ?, ?)`,
-                                        timeout: 5000,
+                                        timeout: requestTimeout,
                                         values: [
                                             username,
                                             email, hash,
@@ -221,9 +230,13 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
         secret
     } = request.params;
 
+    const {
+        requestTimeout
+    } = databaseConfig;
+
     connection.query({
         sql: `SELECT COUNT(*) FROM users WHERE secret = ? AND registered IS NULL`,
-        timeout: 5000,
+        timeout: requestTimeout,
         values: [
             secret
         ]
@@ -238,7 +251,7 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
             if (results[0][countProperty] === 1) {
                 connection.query({
                     sql: `SELECT secret FROM users`,
-                    timeout: 5000
+                    timeout: requestTimeout
                 }, (error, results) => {
                     if (error) {
                         response.send({
@@ -268,7 +281,7 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
 
                         connection.query({
                             sql: `UPDATE users SET secret = ?, registered = NOW() WHERE secret = ?`,
-                            timeout: 5000,
+                            timeout: requestTimeout,
                             values: [
                                 newSecret,
                                 secret
@@ -308,9 +321,13 @@ usersRouter.get("/signIn/username/:username/:password", (request, response) => {
         password
     } = request.params;
 
+    const {
+        requestTimeout
+    } = databaseConfig;
+
     connection.query({
         sql: `SELECT password from users WHERE username = ?`,
-        timeout: 5000,
+        timeout: requestTimeout,
         values: [
             username
         ]
@@ -363,9 +380,13 @@ usersRouter.get("/signIn/email/:email/:password", (request, response) => {
         password
     } = request.params;
 
+    const {
+        requestTimeout
+    } = databaseConfig;
+
     connection.query({
         sql: `SELECT password from users WHERE username = ?`,
-        timeout: 5000,
+        timeout: requestTimeout,
         values: [
             email
         ]
@@ -407,6 +428,198 @@ usersRouter.get("/signIn/email/:email/:password", (request, response) => {
             }
         }
     });
+});
+
+
+// Password reset
+
+usersRouter.post("/resetPassword", (request, response) => {
+    const {
+        email
+    } = request.body;
+
+    const {
+        requestTimeout
+    } = databaseConfig;
+
+    connection.query({
+        sql: `SELECT reset FROM users WHERE email = ?`,
+        timeout: requestTimeout,
+        values: [
+            email
+        ]
+    }, (error, results) => {
+        if (error) {
+            response.send({
+                code: 500,
+                content: "Internal Server Error"
+            });
+        } else if (results.length !== 1) {
+            response.send({
+                code: 400,
+                content: "Bad Request"
+            });
+        } else {
+            const {
+                passwordResetTimeLimit
+            } = databaseConfig.users;
+
+            const lastReset = results[0].reset === null
+                ? passwordResetTimeLimit : Date.now() - results[0].reset;
+            if (lastReset >= parseInt(passwordResetTimeLimit, 10)) {
+                const {
+                    passwordHashRounds,
+                    passwordResetCharset,
+                    passwordResetLength
+                } = databaseConfig.users;
+
+                const passwordRegex = new RegExp(/^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{8,})/);
+
+                let randomPassword = "";
+
+                while (!passwordRegex.test(randomPassword)) {
+                    for (let i = 0; i < parseInt(passwordResetLength, 10); i++) {
+                        const randomCharNumber = Math.floor(Math.random() * passwordResetCharset.length);
+                        randomPassword += passwordResetCharset[randomCharNumber];
+                    }
+                }
+                bcrypt.hash(randomPassword, parseInt(passwordHashRounds, 10), (error, hash) => {
+                    if (error) {
+                        response.send({
+                            code: 500,
+                            content: "Internal Server Error"
+                        });
+                    } else {
+                        connection.query({
+                            sql: `UPDATE users SET password = ?, reset = NOW() WHERE email = ?`,
+                            timeout: requestTimeout,
+                            values: [
+                                hash,
+                                email
+                            ]
+                        }, (error) => {
+                            if (error) {
+                                response.send({
+                                    code: 500,
+                                    content: "Internal Server Error"
+                                });
+                            } else {
+                                response.send({
+                                    code: 200,
+                                    content: "Success"
+                                });
+                            }
+                        });
+                    }
+                });
+            } else {
+                response.send({
+                    code: 406,
+                    content: "Not acceptable"
+                });
+            }
+        }
+    });
+});
+
+
+// Password change
+
+usersRouter.post("/changePassword",  (request, response) => {
+    const {
+        email,
+        oldPassword,
+        newPassword
+    } = request.body;
+
+    const passwordRegex = new RegExp(/^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{8,})/);
+
+    if (passwordRegex.test(newPassword)) {
+        const {
+            requestTimeout
+        } = databaseConfig;
+
+        connection.query({
+            sql: `SELECT password FROM users WHERE email = ?`,
+            timeout: requestTimeout,
+            values: [
+                email
+            ]
+        }, (error, results) => {
+            if (error) {
+                response.send({
+                    code: 500,
+                    content: "Internal Server Error"
+                });
+            } else {
+                if (results.length === 1) {
+                    const [
+                        user
+                    ] = results;
+
+                    bcrypt.compare(oldPassword, user.password, (error, success) => {
+                        if (error) {
+                            response.send({
+                                code: 500,
+                                content: "Internal Server Error"
+                            });
+                        } else if (success) {
+                            const {
+                                passwordHashRounds
+                            } = databaseConfig.users;
+
+                            const rounds = parseInt(passwordHashRounds, 10);
+                            bcrypt.hash(newPassword, rounds, (error, hash) => {
+                                if (error) {
+                                    response.send({
+                                        code: 500,
+                                        content: "Internal Server Errorrr"
+                                    });
+                                } else {
+
+                                    connection.query({
+                                        sql: `UPDATE users SET password = ? WHERE email = ?`,
+                                        timeout: requestTimeout,
+                                        values: [
+                                            hash,
+                                            email
+                                        ]
+                                    }, (error) => {
+                                        if (error) {
+                                            response.send({
+                                                code: 500,
+                                                content: "Internal Server Error"
+                                            });
+                                        } else {
+                                            response.send({
+                                                code: 200,
+                                                content: "Success"
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        } else {
+                            response.send({
+                                code: 406,
+                                content: "Not acceptable"
+                            });
+                        }
+                    });
+                } else {
+                    response.send({
+                        code: 400,
+                        content: "Bad Request"
+                    });
+                }
+            }
+        });
+    } else {
+        response.send({
+            code: 400,
+            content: "Bad Request"
+        });
+    }
 });
 
 
