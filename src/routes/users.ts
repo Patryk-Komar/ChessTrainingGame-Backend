@@ -5,10 +5,15 @@ import express from "express";
 const usersRouter = express.Router();
 
 
-// Importing MySQL database configuration files
+// Importing dependencies and configuration files
 
-import connection from "../database/connection";
+import bcrypt from "bcrypt";
+
+import transporter from "../admin/transporter";
 import databaseConfig from "../config/database";
+import connection from "../database/connection";
+import User from "../models/user";
+import activationMailTemplate from "../templates/activation-mail";
 
 
 // Main users API endpoint
@@ -37,22 +42,16 @@ usersRouter.get("/signUp/username/:username", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             const countProperty = "COUNT(*)";
             if (results[0][countProperty] === 0) {
-                response.send({
-                    code: 200,
-                    content: "Success"
-                });
+                response.status(200);
+                response.send("Success");
             } else {
-                response.send({
-                    code: 406,
-                    content: "Not acceptable"
-                });
+                response.status(406);
+                response.send("Not acceptable");
             }
         }
     });
@@ -78,22 +77,16 @@ usersRouter.get("/signUp/email/:email", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             const countProperty = "COUNT(*)";
             if (results[0][countProperty] === 0) {
-                response.send({
-                    code: 200,
-                    content: "Success"
-                });
+                response.status(200);
+                response.send("Success");
             } else {
-                response.send({
-                    code: 406,
-                    content: "Not acceptable"
-                });
+                response.status(406);
+                response.send("Not acceptable");
             }
         }
     });
@@ -101,10 +94,6 @@ usersRouter.get("/signUp/email/:email", (request, response) => {
 
 
 // New user registration
-
-import bcrypt from "bcrypt";
-
-import User from "../models/user";
 
 usersRouter.post("/signUp", (request, response) => {
     const {
@@ -132,16 +121,12 @@ usersRouter.post("/signUp", (request, response) => {
             ]
         }, (error, results) => {
             if (error) {
-                response.send({
-                    code: 500,
-                    content: "Internal Server Error"
-                });
+                response.status(500);
+                response.send("Internal Server Error");
             } else {
                 if (results.length > 0) {
-                    response.send({
-                        code: 406,
-                        content: "Not Acceptable"
-                    });
+                    response.status(406);
+                    response.send("Not acceptable");
                 } else {
                     const {
                         passwordHashRounds
@@ -149,20 +134,16 @@ usersRouter.post("/signUp", (request, response) => {
                     const rounds = parseInt(passwordHashRounds, 10);
                     bcrypt.hash(password, rounds, (error, hash) => {
                         if (error) {
-                            response.send({
-                                code: 500,
-                                content: "Internal Server Error"
-                            });
+                            response.status(500);
+                            response.send("Internal Server Error");
                         } else {
                             connection.query({
                                 sql: `SELECT secret FROM users`,
                                 timeout: requestTimeout
                             }, (error, results) => {
                                 if (error) {
-                                    response.send({
-                                        code: 500,
-                                        content: "Internal Server Error"
-                                    });
+                                    response.status(500);
+                                    response.send("Internal Server Error");
                                 } else {
                                     const {
                                         hashCharset,
@@ -192,18 +173,24 @@ usersRouter.post("/signUp", (request, response) => {
                                             email, hash,
                                             firstName,
                                             lastName,
-                                            activationHash]
+                                            activationHash
+                                        ]
                                     }, (error) => {
                                         if (error) {
-                                            response.send({
-                                                code: 500,
-                                                content: "Internal Server Error",
-                                                e: error
-                                            });
+                                            response.status(500);
+                                            response.send("Internal Server Error");
                                         } else {
-                                            response.send({
-                                                code: 200,
-                                                content: "Success"
+
+                                            const mailOptions = activationMailTemplate(email, username, activationHash);
+
+                                            transporter.sendMail(mailOptions, (error, info) => {
+                                                if (error) {
+                                                    response.status(500);
+                                                    response.send("Internal Server Error");
+                                                } else {
+                                                    response.status(200);
+                                                    response.send("Success");
+                                                }
                                             });
                                         }
                                     });
@@ -215,10 +202,8 @@ usersRouter.post("/signUp", (request, response) => {
             }
         });
     } else {
-        response.send({
-            code: 400,
-            content: "Bad Request"
-        });
+        response.status(400);
+        response.send("Bad Request");
     }
 });
 
@@ -242,10 +227,8 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             const countProperty = "COUNT(*)";
             if (results[0][countProperty] === 1) {
@@ -254,10 +237,8 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                     timeout: requestTimeout
                 }, (error, results) => {
                     if (error) {
-                        response.send({
-                            code: 500,
-                            content: "Internal Server Error"
-                        });
+                        response.status(500);
+                        response.send("Internal Server Error");
                     } else {
                         const {
                             hashCharset,
@@ -288,25 +269,19 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                             ]
                         }, (error) => {
                             if (error) {
-                                response.send({
-                                    code: 500,
-                                    content: "Internal Server Error"
-                                });
+                                response.status(500);
+                                response.send("Internal Server Error");
                             } else {
-                                response.send({
-                                    code: 200,
-                                    content: "Success"
-                                });
+                                response.status(200);
+                                response.send("Success");
                             }
                         });
 
                     }
                 });
             } else {
-                response.send({
-                    code: 400,
-                    content: "Bad Request"
-                });
+                response.status(400);
+                response.send("Bad Request");
             }
         }
     });
@@ -333,10 +308,8 @@ usersRouter.get("/signIn/username/:username/:password", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             if (results.length === 1) {
                 const [
@@ -345,27 +318,19 @@ usersRouter.get("/signIn/username/:username/:password", (request, response) => {
 
                 bcrypt.compare(password, user.password, (error, success) => {
                     if (error) {
-                        response.send({
-                            code: 500,
-                            content: "Internal Server Error"
-                        });
+                        response.status(500);
+                        response.send("Internal Server Error");
                     } else if (success) {
-                        response.send({
-                            code: 200,
-                            content: "Success"
-                        });
+                        response.status(200);
+                        response.send("Success");
                     } else {
-                        response.send({
-                            code: 406,
-                            content: "Not acceptable"
-                        });
+                        response.status(406);
+                        response.send("Not acceptable");
                     }
                 });
             } else {
-                response.send({
-                    code: 406,
-                    content: "Not acceptable"
-                });
+                response.status(406);
+                response.send("Not acceptable");
             }
         }
     });
@@ -392,10 +357,8 @@ usersRouter.get("/signIn/email/:email/:password", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             if (results.length === 1) {
                 const [
@@ -404,27 +367,19 @@ usersRouter.get("/signIn/email/:email/:password", (request, response) => {
 
                 bcrypt.compare(password, user.password, (error, success) => {
                     if (error) {
-                        response.send({
-                            code: 500,
-                            content: "Internal Server Error"
-                        });
+                        response.status(500);
+                        response.send("Internal Server Error");
                     } else if (success) {
-                        response.send({
-                            code: 200,
-                            content: "Success"
-                        });
+                        response.status(200);
+                        response.send("Success");
                     } else {
-                        response.send({
-                            code: 406,
-                            content: "Not acceptable"
-                        });
+                        response.status(406);
+                        response.send("Not acceptable");
                     }
                 });
             } else {
-                response.send({
-                    code: 406,
-                    content: "Not acceptable"
-                });
+                response.status(406);
+                response.send("Not acceptable");
             }
         }
     });
@@ -450,15 +405,11 @@ usersRouter.post("/resetPassword", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else if (results.length !== 1) {
-            response.send({
-                code: 400,
-                content: "Bad Request"
-            });
+            response.status(400);
+            response.send("Bad Request");
         } else {
             const {
                 passwordResetTimeLimit
@@ -485,10 +436,8 @@ usersRouter.post("/resetPassword", (request, response) => {
                 }
                 bcrypt.hash(randomPassword, parseInt(passwordHashRounds, 10), (error, hash) => {
                     if (error) {
-                        response.send({
-                            code: 500,
-                            content: "Internal Server Error"
-                        });
+                        response.status(500);
+                        response.send("Internal Server Error");
                     } else {
                         connection.query({
                             sql: `UPDATE users SET password = ?, reset = NOW() WHERE email = ?`,
@@ -499,24 +448,18 @@ usersRouter.post("/resetPassword", (request, response) => {
                             ]
                         }, (error) => {
                             if (error) {
-                                response.send({
-                                    code: 500,
-                                    content: "Internal Server Error"
-                                });
+                                response.status(500);
+                                response.send("Internal Server Error");
                             } else {
-                                response.send({
-                                    code: 200,
-                                    content: "Success"
-                                });
+                                response.status(200);
+                                response.send("Success");
                             }
                         });
                     }
                 });
             } else {
-                response.send({
-                    code: 406,
-                    content: "Not acceptable"
-                });
+                response.status(406);
+                response.send("Not acceptable");
             }
         }
     });
@@ -547,10 +490,8 @@ usersRouter.post("/changePassword",  (request, response) => {
             ]
         }, (error, results) => {
             if (error) {
-                response.send({
-                    code: 500,
-                    content: "Internal Server Error"
-                });
+                response.status(500);
+                response.send("Internal Server Error");
             } else {
                 if (results.length === 1) {
                     const [
@@ -559,10 +500,8 @@ usersRouter.post("/changePassword",  (request, response) => {
 
                     bcrypt.compare(oldPassword, user.password, (error, success) => {
                         if (error) {
-                            response.send({
-                                code: 500,
-                                content: "Internal Server Error"
-                            });
+                            response.status(500);
+                            response.send("Internal Server Error");
                         } else if (success) {
                             const {
                                 passwordHashRounds
@@ -571,10 +510,8 @@ usersRouter.post("/changePassword",  (request, response) => {
                             const rounds = parseInt(passwordHashRounds, 10);
                             bcrypt.hash(newPassword, rounds, (error, hash) => {
                                 if (error) {
-                                    response.send({
-                                        code: 500,
-                                        content: "Internal Server Errorrr"
-                                    });
+                                    response.status(500);
+                                    response.send("Internal Server Error");
                                 } else {
 
                                     connection.query({
@@ -586,39 +523,29 @@ usersRouter.post("/changePassword",  (request, response) => {
                                         ]
                                     }, (error) => {
                                         if (error) {
-                                            response.send({
-                                                code: 500,
-                                                content: "Internal Server Error"
-                                            });
+                                            response.status(500);
+                                            response.send("Internal Server Error");
                                         } else {
-                                            response.send({
-                                                code: 200,
-                                                content: "Success"
-                                            });
+                                            response.status(200);
+                                            response.send("Success");
                                         }
                                     });
                                 }
                             });
                         } else {
-                            response.send({
-                                code: 406,
-                                content: "Not acceptable"
-                            });
+                            response.status(406);
+                            response.send("Not acceptable");
                         }
                     });
                 } else {
-                    response.send({
-                        code: 400,
-                        content: "Bad Request"
-                    });
+                    response.status(400);
+                    response.send("Bad Request");
                 }
             }
         });
     } else {
-        response.send({
-            code: 400,
-            content: "Bad Request"
-        });
+        response.status(400);
+        response.send("Bad Request");
     }
 });
 

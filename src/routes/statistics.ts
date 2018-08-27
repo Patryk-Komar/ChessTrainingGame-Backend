@@ -29,17 +29,15 @@ statisticsRouter.get("/registeredUsers", (request, response) => {
         timeout: requestTimeout
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             const countProperty = "COUNT(*)";
+            const registeredUsers = results[0][countProperty];
+            response.status(200);
             response.send({
-                code: 200,
-                content: "Success",
                 data: {
-                    registered: results[0][countProperty]
+                    registeredUsers: registeredUsers
                 }
             });
         }
@@ -58,10 +56,8 @@ statisticsRouter.get("/onlineUsers", (request, response) => {
         timeout: requestTimeout
     }, (error, results) => {
         if (error) {
-            response.send({
-                code: 500,
-                content: "Internal Server Error"
-            });
+            response.status(500);
+            response.send("Internal Server Error");
         } else {
             let onlineUsers = 0;
             const date = Date.now();
@@ -70,11 +66,10 @@ statisticsRouter.get("/onlineUsers", (request, response) => {
                     onlineUsers++;
                 }
             }
+            response.status(200);
             response.send({
-                code: 200,
-                content: "Success",
                 data: {
-                    online: onlineUsers
+                    onlineUsers: onlineUsers
                 }
             });
         }
