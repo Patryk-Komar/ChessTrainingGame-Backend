@@ -8,16 +8,102 @@ const activationMailTemplate = (email: string, username: string, activationHash:
     return {
         from: administrationConfig.email.username,
         to: email,
-        subject: `Chess Training Game - Account activation`,
-        html: `<h3>Welcome, dear ${username}!</h3>
-            Thanks for registration in Chess Training Game. Before you start playing, you must activate your account by clicking the button below.<br>
-            <a href="http://localhost:${port}/users/signUp/activation/${activationHash}">
-                <button>
-                    Activate!
-                </button>
-            </a><br>
-            Regards!<br>
-            Patryk Komar, Chess Training Game developer`
+        subject: "Chess Training Game - Account activation",
+        html: `<!doctype html>
+        <html lang="pl">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    height: 100%;
+                    background-color: #000000;
+                }
+                div.wrapper {
+                    width: 100%;
+                    overflow: hidden;
+                    text-align: center;
+                    font-family: 'Palatino';
+                    font-size: 16px;
+                }
+                div.wrapper {
+                    color: #000000;
+                    background-color: #ffffff;
+                    padding: 20px;
+                }
+                header {
+                    font-size: 20px;
+                    margin-bottom: 10px;
+                }
+                header span {
+                    font-size: 36px;
+                }
+                footer {
+                    font-size: 12px;
+                }
+                section p.contact {
+                    margin-bottom: 30px;
+                    font-size: 16px;
+                    line-height: 20px;
+                }
+                section p.contact a {
+                    color: #000000;
+                    text-decoration: none;
+                    font-weight: bold;
+                }
+                span.button {
+                    display: inline-block;
+                    font-size: 16px;
+                    margin: 20px 0 30px;
+                    padding: 20px;
+                    background-color: #000000;
+                    color: #ffffff;
+                    border-radius: 30px;
+                    font-family: 'Metamorphous';
+                    font-weight: bold;
+                    border: 0;
+                    cursor: pointer;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="wrapper">
+                <header>
+                    Welcome to Chess Training Game,<br>
+                    <span>
+                        ${username}!
+                    </span>
+                </header>
+                <img src="https://static.thenounproject.com/png/144098-200.png" style="max-height: 160px;" alt="Chess figures"><br>
+                <main>
+                    You're receiving this message because new account<br>
+                    has been registered for your email address.<br>
+                    <a href="http://localhost:${port}/users/signUp/activation/${activationHash}">
+                        <span class="button">
+                            VERIFY YOUR EMAIL
+                        </span>
+                    </a>
+                </main>
+                <section>
+                    <p class="contact">
+                        If you wish to contact us, please do not reply to this message<br>but instead go to <a href="/">http://www.chesstraininggame.com/contact</a>. Thank You!
+                    </p>
+                </section>
+                <footer>
+                    <p style="margin-bottom: 10px">
+                        If you received this message but did not attempt to register,<br>
+                        it means that someone may have entered your email address when registering, probably by mistake.
+                    </p>
+                    If this is the case, you can safely disregard this email - no further action is required. We apologize for the intrusion.
+                </footer>
+            </div>
+        </body>
+        </html>`
     };
 };
 
