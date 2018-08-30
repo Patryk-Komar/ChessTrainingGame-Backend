@@ -1,14 +1,14 @@
 import administrationConfig from "../config/administration";
 import environmentConfig from "../config/environment";
 
-const activationMailTemplate = (email: string, username: string, activationHash: string) => {
+const welcomeMailTemplate = (email: string, username: string) => {
     const {
         port
     } = environmentConfig;
     return {
         from: administrationConfig.email.username,
         to: email,
-        subject: "Chess Training Game - Please verify your email address",
+        subject: "Chess Training Game - Your account is now active",
         html: `<!doctype html>
         <html lang="pl">
         <head>
@@ -43,7 +43,7 @@ const activationMailTemplate = (email: string, username: string, activationHash:
                 header span {
                     font-size: 36px;
                 }
-                article {
+                footer {
                     font-size: 12px;
                 }
                 section p.contact {
@@ -69,44 +69,34 @@ const activationMailTemplate = (email: string, username: string, activationHash:
                     border: 0;
                     cursor: pointer;
                 }
-                footer {
-                    margin-top: 30px;
-                    font-size: 12px;
-                }
             </style>
         </head>
         <body>
             <div class="wrapper">
                 <header>
-                    Welcome to Chess Training Game,<br>
+                    Get ready to brainstorm,<br>
                     <span>
                         ${username}!
                     </span>
                 </header>
                 <img src="https://static.thenounproject.com/png/144098-200.png" style="max-height: 160px;" alt="Chess figures"><br>
                 <main>
-                    You're receiving this message because new account<br>
-                    has been registered for your email address.<br>
-                    <a href="http://localhost:${port}/users/signUp/activation/${activationHash}">
+                    Your account in Chess Training Game has been activated.<br>
+                    Difficult chess tasks and vastness of knowledge are waiting for you!<br>
+                    <a href="http://localhost:${port}/">
                         <span class="button">
-                            VERIFY YOUR EMAIL
+                            PLAY NOW
                         </span>
                     </a>
                 </main>
                 <section>
+                    <p style="margin-bottom: 10px">
+                        This message was auto-generated.
+                    </p>
                     <p class="contact">
                         If you wish to contact us, please do not reply to this message<br>but instead go to <a href="http://localhost:${port}/contact">http://www.chesstraininggame.com/contact</a>. Thanks!
                     </p>
                 </section>
-                <article>
-                    <p style="margin-bottom: 10px">
-                        If you received this message but did not attempt to register,<br>
-                        it means that someone may have entered your email address when registering, probably by mistake.
-                    </p>
-                    <p style="margin-bottom: 10px">
-                        If this is the case, you can safely disregard this email - no further action is required. We apologize for the intrusion.
-                    </p>
-                </article>
                 <footer>
                     Copyright © Chess Training Game, 2018<br>
                     All right reserved
@@ -117,4 +107,4 @@ const activationMailTemplate = (email: string, username: string, activationHash:
     };
 };
 
-export default activationMailTemplate;
+export default welcomeMailTemplate;

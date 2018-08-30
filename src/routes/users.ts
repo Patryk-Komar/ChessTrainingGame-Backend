@@ -14,6 +14,8 @@ import databaseConfig from "../config/database";
 import connection from "../database/connection";
 import User from "../models/user";
 import activationMailTemplate from "../templates/activation-mail";
+import welcomeMailTemplate from "../templates/welcome-mail";
+import passwordResetMailTemplate from "../templates/password-reset-mail";
 
 
 // Main users API endpoint
@@ -183,7 +185,7 @@ usersRouter.post("/signUp", (request, response) => {
 
                                             const mailOptions = activationMailTemplate(email, username, activationHash);
 
-                                            transporter.sendMail(mailOptions, (error, info) => {
+                                            transporter.sendMail(mailOptions, (error) => {
                                                 if (error) {
                                                     response.status(500);
                                                     response.send("Internal Server Error");
@@ -220,7 +222,7 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
     } = databaseConfig;
 
     connection.query({
-        sql: `SELECT COUNT(*) FROM users WHERE secret = ? AND registered IS NULL`,
+        sql: `SELECT username, email FROM users WHERE secret = ? AND registered IS NULL`,
         timeout: requestTimeout,
         values: [
             secret
@@ -230,8 +232,12 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
             response.status(500);
             response.send("Internal Server Error");
         } else {
-            const countProperty = "COUNT(*)";
-            if (results[0][countProperty] === 1) {
+            if (results.length === 1) {
+                const {
+                    username,
+                    email
+                } = results[0];
+
                 connection.query({
                     sql: `SELECT secret FROM users`,
                     timeout: requestTimeout
@@ -272,8 +278,17 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                                 response.status(500);
                                 response.send("Internal Server Error");
                             } else {
-                                response.status(200);
-                                response.send("Success");
+                                const mailOptions = welcomeMailTemplate(email, username);
+
+                                transporter.sendMail(mailOptions, (error) => {
+                                    if (error) {
+                                        response.status(500);
+                                        response.send("Internal Server Error");
+                                    } else {
+                                        response.status(200);
+                                        response.send("Success");
+                                    }
+                                });
                             }
                         });
 
@@ -398,7 +413,7 @@ usersRouter.post("/resetPassword", (request, response) => {
     } = databaseConfig;
 
     connection.query({
-        sql: `SELECT reset FROM users WHERE email = ?`,
+        sql: `SELECT username, reset FROM users WHERE email = ?`,
         timeout: requestTimeout,
         values: [
             email
@@ -415,7 +430,12 @@ usersRouter.post("/resetPassword", (request, response) => {
                 passwordResetTimeLimit
             } = databaseConfig.users;
 
-            const lastReset = results[0].reset === null
+            const {
+                username,
+                reset
+            } = results[0];
+
+            const lastReset = reset === null
                 ? passwordResetTimeLimit : Date.now() - results[0].reset;
             if (lastReset >= parseInt(passwordResetTimeLimit, 10)) {
                 const {
@@ -451,8 +471,17 @@ usersRouter.post("/resetPassword", (request, response) => {
                                 response.status(500);
                                 response.send("Internal Server Error");
                             } else {
-                                response.status(200);
-                                response.send("Success");
+                                const mailOptions = passwordResetMailTemplate(email, username, randomPassword);
+
+                                transporter.sendMail(mailOptions, (error) => {
+                                    if (error) {
+                                        response.status(500);
+                                        response.send("Internal Server Error");
+                                    } else {
+                                        response.status(200);
+                                        response.send("Success");
+                                    }
+                                });
                             }
                         });
                     }

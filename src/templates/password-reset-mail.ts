@@ -1,14 +1,14 @@
 import administrationConfig from "../config/administration";
 import environmentConfig from "../config/environment";
 
-const activationMailTemplate = (email: string, username: string, activationHash: string) => {
+const passwordResetMailTemplate = (email: string, username: string, newPassword: string) => {
     const {
         port
     } = environmentConfig;
     return {
         from: administrationConfig.email.username,
         to: email,
-        subject: "Chess Training Game - Please verify your email address",
+        subject: "Chess Training Game - Your account's password has been reset",
         html: `<!doctype html>
         <html lang="pl">
         <head>
@@ -85,13 +85,14 @@ const activationMailTemplate = (email: string, username: string, activationHash:
                 </header>
                 <img src="https://static.thenounproject.com/png/144098-200.png" style="max-height: 160px;" alt="Chess figures"><br>
                 <main>
-                    You're receiving this message because new account<br>
-                    has been registered for your email address.<br>
-                    <a href="http://localhost:${port}/users/signUp/activation/${activationHash}">
-                        <span class="button">
-                            VERIFY YOUR EMAIL
-                        </span>
-                    </a>
+                    <p style="margin-bottom: 20px;">
+                        You're receiving this message because a password reset request<br>
+                        was sent for your account.
+                    </p>
+                    <p style="margin-bottom: 30px;">
+                        Your new password:<br>
+                        <span style="font-size: 28px; font-weight: bold;">${newPassword}</span>
+                    </p>
                 </main>
                 <section>
                     <p class="contact">
@@ -100,11 +101,12 @@ const activationMailTemplate = (email: string, username: string, activationHash:
                 </section>
                 <article>
                     <p style="margin-bottom: 10px">
-                        If you received this message but did not attempt to register,<br>
-                        it means that someone may have entered your email address when registering, probably by mistake.
+                        If you received this message but did not attempt to reset your password,<br>
+                        it means that someone else may have entered your email address, probably by mistake.
                     </p>
                     <p style="margin-bottom: 10px">
-                        If this is the case, you can safely disregard this email - no further action is required. We apologize for the intrusion.
+                        If this is the case, please sign in to Chess Training Game with a new password<br>
+                        and then change it in account administration panel. We apologize for the intrusion.
                     </p>
                 </article>
                 <footer>
@@ -117,4 +119,4 @@ const activationMailTemplate = (email: string, username: string, activationHash:
     };
 };
 
-export default activationMailTemplate;
+export default passwordResetMailTemplate;
