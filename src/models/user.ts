@@ -9,7 +9,7 @@ export default class User {
     }
 
     private validateUsername(): boolean {
-        const usernameRegex = new RegExp(/^[A-Za-z][a-zA-Z0-9.-_]{2,14}$/);
+        const usernameRegex = new RegExp(/^[A-Za-z][a-zA-Z0-9.-_]{2,15}$/);
         return usernameRegex.test(this.username);
     }
 
@@ -19,17 +19,17 @@ export default class User {
     }
 
     private validatePassword(): boolean {
-        const passwordRegex = new RegExp(/^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{8,})/);
+        const passwordRegex = new RegExp(/^[A-Za-z\d.!@#$%^^&*-_](?=.*[A-Za-z])(?=.*\d)[A-Za-z\d.!@#$%^&*-_]{7,19}$/);
         return passwordRegex.test(this.password);
     }
 
     private validateFirstName(): boolean {
-        const firstsNameRegex = new RegExp(/^[A-ZŁŻ][a-ząćęłńóśżź]{2,24}$/);
+        const firstsNameRegex = new RegExp(/^[A-ZŁŻ][a-ząćęłńóśżź]{2,19}$/);
         return firstsNameRegex.test(this.firstName);
     }
 
     private validateLastName(): boolean {
-        const lastNameRegex = new RegExp(/^[A-ZĆŁŚŻ][a-ząćęłńóśżź]{2,24}$/);
+        const lastNameRegex = new RegExp(/^[A-ZĆŁŚŻ][a-ząćęłńóśżź]{2,19}$/);
         return lastNameRegex.test(this.lastName);
     }
 

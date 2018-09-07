@@ -44,16 +44,23 @@ usersRouter.get("/signUp/username/:username", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.status(500);
-            response.send("Internal Server Error");
+            response.status(200);
+            response.send({
+                error: "Internal Server Error",
+                success: false
+            });
         } else {
             const countProperty = "COUNT(*)";
             if (results[0][countProperty] === 0) {
                 response.status(200);
-                response.send("Success");
+                response.send({
+                    success: true
+                });
             } else {
-                response.status(406);
-                response.send("Not acceptable");
+                response.status(200);
+                response.send({
+                    success: false
+                });
             }
         }
     });
@@ -79,16 +86,23 @@ usersRouter.get("/signUp/email/:email", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.status(500);
-            response.send("Internal Server Error");
+            response.status(200);
+            response.send({
+                error: "Internal Server Error",
+                success: false
+            });
         } else {
             const countProperty = "COUNT(*)";
             if (results[0][countProperty] === 0) {
                 response.status(200);
-                response.send("Success");
+                response.send({
+                    success: true
+                });
             } else {
-                response.status(406);
-                response.send("Not acceptable");
+                response.status(200);
+                response.send({
+                    success: false
+                });
             }
         }
     });
@@ -123,12 +137,18 @@ usersRouter.post("/signUp", (request, response) => {
             ]
         }, (error, results) => {
             if (error) {
-                response.status(500);
-                response.send("Internal Server Error");
+                response.status(200);
+                response.send({
+                    error: "Internal Server Error",
+                    success: false
+                });
             } else {
                 if (results.length > 0) {
-                    response.status(406);
-                    response.send("Not acceptable");
+                    response.status(200);
+                    response.send({
+                        message: "An account already exists with this username or email. Please create a new account or use the password reminder function.",
+                        success: false
+                    });
                 } else {
                     const {
                         passwordHashRounds
@@ -136,16 +156,22 @@ usersRouter.post("/signUp", (request, response) => {
                     const rounds = parseInt(passwordHashRounds, 10);
                     bcrypt.hash(password, rounds, (error, hash) => {
                         if (error) {
-                            response.status(500);
-                            response.send("Internal Server Error");
+                            response.status(200);
+                            response.send({
+                                error: "Internal Server Error",
+                                success: false
+                            });
                         } else {
                             connection.query({
                                 sql: `SELECT secret FROM users`,
                                 timeout: requestTimeout
                             }, (error, results) => {
                                 if (error) {
-                                    response.status(500);
-                                    response.send("Internal Server Error");
+                                    response.status(200);
+                                    response.send({
+                                        error: "Internal Server Error",
+                                        success: false
+                                    });
                                 } else {
                                     const {
                                         hashCharset,
@@ -179,19 +205,27 @@ usersRouter.post("/signUp", (request, response) => {
                                         ]
                                     }, (error) => {
                                         if (error) {
-                                            response.status(500);
-                                            response.send("Internal Server Error");
+                                            response.status(200);
+                                            response.send({
+                                                error: "Internal Server Error",
+                                                success: false
+                                            });
                                         } else {
 
                                             const mailOptions = activationMailTemplate(email, username, activationHash);
 
                                             transporter.sendMail(mailOptions, (error) => {
                                                 if (error) {
-                                                    response.status(500);
-                                                    response.send("Internal Server Error");
+                                                    response.status(200);
+                                                    response.send({
+                                                        error: "Internal Server Error",
+                                                        success: false
+                                                    });
                                                 } else {
                                                     response.status(200);
-                                                    response.send("Success");
+                                                    response.send({
+                                                        success: true
+                                                    });
                                                 }
                                             });
                                         }
@@ -204,8 +238,11 @@ usersRouter.post("/signUp", (request, response) => {
             }
         });
     } else {
-        response.status(400);
-        response.send("Bad Request");
+        response.status(200);
+        response.send({
+            message: "You entered wrong data. Please check if all information are correct and try again.",
+            success: false
+        });
     }
 });
 
@@ -229,8 +266,11 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.status(500);
-            response.send("Internal Server Error");
+            response.status(200);
+            response.send({
+                error: "Internal Server Error",
+                success: false
+            });
         } else {
             if (results.length === 1) {
                 const {
@@ -243,8 +283,11 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                     timeout: requestTimeout
                 }, (error, results) => {
                     if (error) {
-                        response.status(500);
-                        response.send("Internal Server Error");
+                        response.status(200);
+                        response.send({
+                            error: "Internal Server Error",
+                            success: false
+                        });
                     } else {
                         const {
                             hashCharset,
@@ -275,18 +318,25 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                             ]
                         }, (error) => {
                             if (error) {
-                                response.status(500);
-                                response.send("Internal Server Error");
+                                response.status(200);
+                                response.send({
+                                    error: "Internal Server Error",
+                                    success: false
+                                });
                             } else {
                                 const mailOptions = welcomeMailTemplate(email, username);
-
                                 transporter.sendMail(mailOptions, (error) => {
                                     if (error) {
-                                        response.status(500);
-                                        response.send("Internal Server Error");
+                                        response.status(200);
+                                        response.send({
+                                            error: "Internal Server Error",
+                                            success: false
+                                        });
                                     } else {
                                         response.status(200);
-                                        response.send("Success");
+                                        response.send({
+                                            success: true
+                                        });
                                     }
                                 });
                             }
@@ -295,8 +345,11 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                     }
                 });
             } else {
-                response.status(400);
-                response.send("Bad Request");
+                response.status(200);
+                response.send({
+                    message: "It seems your account has been activated already.",
+                    success: false
+                });
             }
         }
     });
@@ -316,36 +369,59 @@ usersRouter.get("/signIn/username/:username/:password", (request, response) => {
     } = databaseConfig;
 
     connection.query({
-        sql: `SELECT password from users WHERE username = ?`,
+        sql: `SELECT password, registered from users WHERE username = ?`,
         timeout: requestTimeout,
         values: [
             username
         ]
     }, (error, results) => {
         if (error) {
-            response.status(500);
-            response.send("Internal Server Error");
+            response.status(200);
+            response.send({
+                error: "Internal Server Error",
+                success: false
+            });
         } else {
             if (results.length === 1) {
-                const [
-                    user
-                ] = results;
+                const [{
+                    password: userPassword,
+                    registered
+                }] = results;
 
-                bcrypt.compare(password, user.password, (error, success) => {
-                    if (error) {
-                        response.status(500);
-                        response.send("Internal Server Error");
-                    } else if (success) {
-                        response.status(200);
-                        response.send("Success");
-                    } else {
-                        response.status(406);
-                        response.send("Not acceptable");
-                    }
-                });
+                if (!registered) {
+                    response.status(200);
+                    response.send({
+                        message: "Your account hasn't been activated yet. Please check your Inbox and follow the instructions.",
+                        success: false
+                    });
+                } else {
+                    bcrypt.compare(password, userPassword, (error, success) => {
+                        if (error) {
+                            response.status(200);
+                            response.send({
+                                error: "Internal Server Error",
+                                success: false
+                            });
+                        } else if (success) {
+                            response.status(200);
+                            response.send({
+                                success: true
+                            });
+                        } else {
+                            response.status(200);
+                            response.send({
+                                message: "You entered incorrect credentials, please try again.",
+                                success: false
+                            });
+                        }
+                    });
+                }
             } else {
-                response.status(406);
-                response.send("Not acceptable");
+                response.status(200);
+                response.send({
+                    message: "You entered incorrect credentials, please try again.",
+                    success: false
+                });
             }
         }
     });
@@ -372,29 +448,51 @@ usersRouter.get("/signIn/email/:email/:password", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.status(500);
-            response.send("Internal Server Error");
+            response.status(200);
+            response.send({
+                error: "Internal Server Error",
+                success: false
+            });
         } else {
             if (results.length === 1) {
-                const [
-                    user
-                ] = results;
-
-                bcrypt.compare(password, user.password, (error, success) => {
-                    if (error) {
-                        response.status(500);
-                        response.send("Internal Server Error");
-                    } else if (success) {
-                        response.status(200);
-                        response.send("Success");
-                    } else {
-                        response.status(406);
-                        response.send("Not acceptable");
-                    }
-                });
+                const [{
+                    password: userPassword,
+                    registered
+                }] = results;
+                if (!registered) {
+                    response.status(200);
+                    response.send({
+                        message: "Your account hasn't been activated yet. Please check your Inbox and follow the instructions.",
+                        success: false
+                    });
+                } else {
+                    bcrypt.compare(password, userPassword, (error, success) => {
+                        if (error) {
+                            response.status(200);
+                            response.send({
+                                error: "Internal Server Error",
+                                success: false
+                            });
+                        } else if (success) {
+                            response.status(200);
+                            response.send({
+                                success: true
+                            });
+                        } else {
+                            response.status(200);
+                            response.send({
+                                message: "You entered incorrect credentials, please try again.",
+                                success: false
+                            });
+                        }
+                    });
+                }
             } else {
-                response.status(406);
-                response.send("Not acceptable");
+                response.status(200);
+                response.send({
+                    message: "You entered incorrect credentials, please try again.",
+                    success: false
+                });
             }
         }
     });
@@ -420,11 +518,17 @@ usersRouter.post("/resetPassword", (request, response) => {
         ]
     }, (error, results) => {
         if (error) {
-            response.status(500);
-            response.send("Internal Server Error");
+            response.status(200);
+            response.send({
+                error: "Internal Server Error",
+                success: false
+            });
         } else if (results.length !== 1) {
-            response.status(400);
-            response.send("Bad Request");
+            response.status(200);
+            response.send({
+                message: "You entered incorrect credentials, please try again.",
+                success: false
+            });
         } else {
             const {
                 passwordResetTimeLimit
@@ -456,8 +560,11 @@ usersRouter.post("/resetPassword", (request, response) => {
                 }
                 bcrypt.hash(randomPassword, parseInt(passwordHashRounds, 10), (error, hash) => {
                     if (error) {
-                        response.status(500);
-                        response.send("Internal Server Error");
+                        response.status(200);
+                        response.send({
+                            error: "Internal Server Error",
+                            success: false
+                        });
                     } else {
                         connection.query({
                             sql: `UPDATE users SET password = ?, reset = NOW() WHERE email = ?`,
@@ -468,18 +575,26 @@ usersRouter.post("/resetPassword", (request, response) => {
                             ]
                         }, (error) => {
                             if (error) {
-                                response.status(500);
-                                response.send("Internal Server Error");
+                                response.status(200);
+                                response.send({
+                                    error: "Internal Server Error",
+                                    success: false
+                                });
                             } else {
                                 const mailOptions = passwordResetMailTemplate(email, username, randomPassword);
 
                                 transporter.sendMail(mailOptions, (error) => {
                                     if (error) {
-                                        response.status(500);
-                                        response.send("Internal Server Error");
+                                        response.status(200);
+                                        response.send({
+                                            error: "Internal Server Error",
+                                            success: false
+                                        });
                                     } else {
                                         response.status(200);
-                                        response.send("Success");
+                                        response.send({
+                                            success: true
+                                        });
                                     }
                                 });
                             }
@@ -487,8 +602,11 @@ usersRouter.post("/resetPassword", (request, response) => {
                     }
                 });
             } else {
-                response.status(406);
-                response.send("Not acceptable");
+                response.status(200);
+                response.send({
+                    message: "Password was reset for your account in last two weeks. In order to reset it again, you have to wait.",
+                    success: false
+                });
             }
         }
     });
@@ -519,8 +637,11 @@ usersRouter.post("/changePassword",  (request, response) => {
             ]
         }, (error, results) => {
             if (error) {
-                response.status(500);
-                response.send("Internal Server Error");
+                response.status(200);
+                response.send({
+                    error: "Internal Server Error",
+                    success: false
+                });
             } else {
                 if (results.length === 1) {
                     const [
@@ -529,8 +650,11 @@ usersRouter.post("/changePassword",  (request, response) => {
 
                     bcrypt.compare(oldPassword, user.password, (error, success) => {
                         if (error) {
-                            response.status(500);
-                            response.send("Internal Server Error");
+                            response.status(200);
+                            response.send({
+                                error: "Internal Server Error",
+                                success: false
+                            });
                         } else if (success) {
                             const {
                                 passwordHashRounds
@@ -539,8 +663,11 @@ usersRouter.post("/changePassword",  (request, response) => {
                             const rounds = parseInt(passwordHashRounds, 10);
                             bcrypt.hash(newPassword, rounds, (error, hash) => {
                                 if (error) {
-                                    response.status(500);
-                                    response.send("Internal Server Error");
+                                    response.status(200);
+                                    response.send({
+                                        error: "Internal Server Error",
+                                        success: false
+                                    });
                                 } else {
 
                                     connection.query({
@@ -552,29 +679,43 @@ usersRouter.post("/changePassword",  (request, response) => {
                                         ]
                                     }, (error) => {
                                         if (error) {
-                                            response.status(500);
-                                            response.send("Internal Server Error");
+                                            response.status(200);
+                                            response.send({
+                                                error: "Internal Server Error",
+                                                success: false
+                                            });
                                         } else {
                                             response.status(200);
-                                            response.send("Success");
+                                            response.send({
+                                                success: true
+                                            });
                                         }
                                     });
                                 }
                             });
                         } else {
-                            response.status(406);
-                            response.send("Not acceptable");
+                            response.status(200);
+                            response.send({
+                                error: "Not acceptable",
+                                success: false
+                            });
                         }
                     });
                 } else {
-                    response.status(400);
-                    response.send("Bad Request");
+                    response.status(200);
+                    response.send({
+                        message: "You entered wrong current password, please correct it and try again.",
+                        success: false
+                    });
                 }
             }
         });
     } else {
-        response.status(400);
-        response.send("Bad Request");
+        response.status(200);
+        response.send({
+            message: "Your new password must contain at 8-20 characters including at least one letter and one digit.",
+            success: false
+        });
     }
 });
 

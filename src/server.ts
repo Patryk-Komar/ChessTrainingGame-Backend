@@ -3,6 +3,7 @@
 import bodyParser from "body-parser";
 import express from "express";
 import http from "http";
+import path from "path";
 
 
 // Importing configuration files
@@ -19,6 +20,7 @@ const app = express();
 app.set("port", port);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, process.env.FRONTEND_PATH)));
 
 
 // Connecting to MySQL database
@@ -41,7 +43,7 @@ app.use("/users", usersRouter);
 app.use("/statistics", statisticsRouter);
 
 app.get("*", (request, response) => {
-    response.send("Website index.");
+    response.sendFile(path.join(__dirname, `${process.env.FRONTEND_PATH}/${process.env.FRONTEND_INDEX}`));
 });
 
 
