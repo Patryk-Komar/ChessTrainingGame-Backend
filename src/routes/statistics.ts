@@ -18,7 +18,7 @@ statisticsRouter.get("/", (request, response) => {
 });
 
 
-// registered users number
+// Registered users number
 
 statisticsRouter.get("/registeredUsers", (request, response) => {
     const {
