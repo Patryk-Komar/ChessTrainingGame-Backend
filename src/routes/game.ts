@@ -175,18 +175,18 @@ gameRouter.post("/non-ranked/puzzles", (request, response) => {
     } = databaseConfig;
     const availableGameModes = {
         names: [
-            "oneMoveCheckmate" /* ,
-            "twoMovesCheckmate",
+            // "oneMoveCheckmate",
+            // "twoMovesCheckmate",
             "threeMovesCheckmate",
-            "stalemate",
-            "doubleAttack" */
+            // "stalemate",
+            // "doubleAttack"
         ],
         tables: [
-            "one-move-checkmates" /* ,
-            "two-moves-checkmates",
+            // "one-move-checkmates",
+            // "two-moves-checkmates",
             "three-moves-checkmates",
-            "stalemates",
-            "double-attacks" */
+            // "stalemates",
+            // "double-attacks"
         ]
     };
     const random = Math.floor(Math.random() * availableGameModes.tables.length);

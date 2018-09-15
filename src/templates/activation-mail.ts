@@ -87,7 +87,7 @@ const activationMailTemplate = (email: string, username: string, activationHash:
                 <main>
                     You're receiving this message because new account<br>
                     has been registered for your email address.<br>
-                    <a href="http://localhost:${port}/users/signUp/activation/${activationHash}">
+                    <a href="http://localhost:${port}/api/users/signUp/activation/${activationHash}">
                         <span class="button">
                             VERIFY YOUR EMAIL
                         </span>
