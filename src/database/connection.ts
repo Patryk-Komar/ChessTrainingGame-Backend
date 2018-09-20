@@ -11,7 +11,8 @@ const connection = mysql.createConnection({
     user: database.user,
     password : database.password,
     database: database.name,
-    charset: database.charset
+    charset: database.charset,
+    multipleStatements: true
 });
 
 export default connection;

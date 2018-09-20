@@ -9,7 +9,7 @@ export default class User {
     }
 
     private validateUsername(): boolean {
-        const usernameRegex = new RegExp(/^[A-Za-z][a-zA-Z0-9.-_]{2,15}$/);
+        const usernameRegex = new RegExp(/^[A-Za-z][-a-zA-Z0-9._]{2,15}$/);
         return usernameRegex.test(this.username);
     }
 
