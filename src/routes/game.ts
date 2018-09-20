@@ -18,9 +18,159 @@ gameRouter.get("/", (request, response) => {
 });
 
 
+// Check if puzzle type is already unlocked
+
+gameRouter.post("/puzzles/unlocked", (request, response) => {
+    const {
+        username,
+        gameMode
+    } = request.body;
+    if (gameMode === "oneMoveCheckmate" || gameMode === "stalemate" || gameMode === "doubleAttack") {
+        response.status(200);
+        response.send({
+            success: true
+        });
+    } else {
+        const {
+            requestTimeout
+        } = databaseConfig;
+        if (gameMode === "twoMovesCheckmate") {
+            const oneMoveCheckmatesScores = "\`one-move-checkmates-scores\`";
+            connection.query({
+                sql: `SELECT * FROM ${oneMoveCheckmatesScores} WHERE username = ?`,
+                timeout: requestTimeout,
+                values: [
+                    username
+                ]
+            }, (error, results) => {
+                if (error || results.length !== 1) {
+                    response.status(200);
+                    response.send({
+                        success: false
+                    });
+                } else {
+                    const [
+                        userScores
+                    ] = results;
+                    let completedLevelsCounter = 0;
+                    for (const score in userScores) {
+                        if (score !== "username" && userScores[score] !== null) {
+                            completedLevelsCounter++;
+                        }
+                    }
+                    if (completedLevelsCounter >= 100) {
+                        response.status(200);
+                        response.send({
+                            success: true
+                        });
+                    } else {
+                        response.status(200);
+                        response.send({
+                            success: false
+                        });
+                    }
+                }
+            });
+        } else if (gameMode === "threeMovesCheckmate") {
+            const twoMovesCheckmatesScores = "\`two-moves-checkmates-scores\`";
+            connection.query({
+                sql: `SELECT * FROM ${twoMovesCheckmatesScores} WHERE username = ?`,
+                timeout: requestTimeout,
+                values: [
+                    username
+                ]
+            }, (error, results) => {
+                if (error || results.length !== 1) {
+                    response.status(200);
+                    response.send({
+                        success: false
+                    });
+                } else {
+                    const [
+                        userScores
+                    ] = results;
+                    let completedLevelsCounter = 0;
+                    for (const score in userScores) {
+                        if (score !== "username" && userScores[score] !== null) {
+                            completedLevelsCounter++;
+                        }
+                    }
+                    if (completedLevelsCounter >= 50) {
+                        response.status(200);
+                        response.send({
+                            success: true
+                        });
+                    } else {
+                        response.status(200);
+                        response.send({
+                            success: false
+                        });
+                    }
+                }
+            });
+        } else {
+            response.status(200);
+            response.send({
+                success: false
+            });
+        }
+    }
+});
+
+
+// Check if there is at least one uncompleted puzzle of specific type
+
+gameRouter.post("/puzzles/ranked/completed", (request, response) => {
+    const {
+        username,
+        gameMode
+    } = request.body;
+
+    const {
+        requestTimeout
+    } = databaseConfig;
+
+    const scoresTable = `\`${gameMode.split(/(?=[A-Z])/).join().toLowerCase().replace(/,/g, "-")}s-scores\``;
+
+    connection.query({
+        sql: `SELECT * FROM ${scoresTable} WHERE username = ?`,
+        timeout: requestTimeout,
+        values: [
+            username
+        ]
+    }, (error, results) => {
+        if (error || results.length !== 1) {
+            response.send({
+                success: false
+            });
+        } else {
+            const [
+                userScores
+            ] = results;
+            let uncompleted = false;
+            for (const score in userScores) {
+                if (score !== "username" && userScores[score] === null) {
+                    uncompleted = true;
+                    break;
+                }
+            }
+            if (uncompleted) {
+                response.send({
+                    success: true
+                });
+            } else {
+                response.send({
+                    success: false
+                });
+            }
+        }
+    });
+});
+
+
 // Get random puzzle of specified type for a ranked game
 
-gameRouter.post("/ranked/puzzles/get", (request, response) => {
+gameRouter.post("/puzzles/ranked/get", (request, response) => {
     const {
         gameMode,
         username
@@ -106,7 +256,7 @@ gameRouter.post("/ranked/puzzles/get", (request, response) => {
 
 // Update player's score of a specific puzzle
 
-gameRouter.put("/ranked/puzzles/update", (request, response) => {
+gameRouter.put("/puzzles/ranked/update", (request, response) => {
     const {
         gameMode,
         puzzleID,
@@ -167,54 +317,87 @@ gameRouter.put("/ranked/puzzles/update", (request, response) => {
 });
 
 
-// Get random puzzle for a non-ranked game (training)
+// Get puzzle for a non-ranked game (training)
 
-gameRouter.post("/non-ranked/puzzles", (request, response) => {
+gameRouter.post("/puzzles/non-ranked/get", (request, response) => {
     const {
         requestTimeout
     } = databaseConfig;
-    const availableGameModes = {
-        names: [
-            // "oneMoveCheckmate",
-            // "twoMovesCheckmate",
-            "threeMovesCheckmate",
-            // "stalemate",
-            // "doubleAttack"
-        ],
-        tables: [
-            // "one-move-checkmates",
-            // "two-moves-checkmates",
-            "three-moves-checkmates",
-            // "stalemates",
-            // "double-attacks"
-        ]
-    };
-    const random = Math.floor(Math.random() * availableGameModes.tables.length);
-    const gameModeName = availableGameModes.names[random];
-    const tableName = availableGameModes.tables[random];
-    const puzzlesTable = `\`${tableName}\``;
 
-    connection.query({
-        sql: `SELECT * FROM ${puzzlesTable}`,
-        timeout: requestTimeout
-    }, (error, results) => {
-        if (error) {
-            response.status(200);
-            response.send({
-                error: "Internal Server Error",
-                success: false
-            });
-        } else {
-            const puzzleRandom = Math.floor(Math.random() * results.length);
-            const puzzle = results[puzzleRandom];
-            response.status(200);
-            response.send({
-                gameModeName: gameModeName,
-                result: puzzle,
-                success: true
-            });
-        }
-    });
+    const {
+        random
+    } = request.body;
+
+    if (random) {
+        const availableGameModes = {
+            names: [
+                "oneMoveCheckmate",
+                "twoMovesCheckmate",
+                "threeMovesCheckmate",
+                "stalemate",
+                "doubleAttack"
+            ],
+            tables: [
+                "\`one-move-checkmates\`",
+                "\`two-moves-checkmates\`",
+                "\`three-moves-checkmates\`",
+                "\`stalemates\`",
+                "\`double-attacks\`"
+            ]
+        };
+        const tableRandom = Math.floor(Math.random() * availableGameModes.tables.length);
+        const gameModeName = availableGameModes.names[tableRandom];
+        const puzzlesTable = availableGameModes.tables[tableRandom];
+
+        connection.query({
+            sql: `SELECT * FROM ${puzzlesTable}`,
+            timeout: requestTimeout
+        }, (error, results) => {
+            if (error) {
+                response.status(200);
+                response.send({
+                    error: "Internal Server Error",
+                    success: false
+                });
+            } else {
+                const puzzleRandom = Math.floor(Math.random() * results.length);
+                const puzzle = results[puzzleRandom];
+                response.status(200);
+                response.send({
+                    gameModeName: gameModeName,
+                    result: puzzle,
+                    success: true
+                });
+            }
+        });
+    } else {
+        const {
+            gameMode
+        } = request.body;
+        const puzzlesTable = `\`${gameMode.split(/(?=[A-Z])/).join().toLowerCase().replace(/,/g, "-")}s\``;
+
+        connection.query({
+            sql: `SELECT * FROM ${puzzlesTable}`,
+            timeout: requestTimeout
+        }, (error, results) => {
+            if (error) {
+                response.status(200);
+                response.send({
+                    error: "Internal Server Error",
+                    success: false
+                });
+            } else {
+                const puzzleRandom = Math.floor(Math.random() * results.length);
+                const puzzle = results[puzzleRandom];
+                response.status(200);
+                response.send({
+                    gameModeName: gameMode,
+                    result: puzzle,
+                    success: true
+                });
+            }
+        });
+    }
 });
 
 

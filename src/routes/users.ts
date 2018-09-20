@@ -27,10 +27,10 @@ usersRouter.get("/", (request, response) => {
 
 // Username availability
 
-usersRouter.get("/signUp/username/:username", (request, response) => {
+usersRouter.post("/signUp/username/availability", (request, response) => {
     const {
         username
-    } = request.params;
+    } = request.body;
 
     const {
         requestTimeout
@@ -69,10 +69,10 @@ usersRouter.get("/signUp/username/:username", (request, response) => {
 
 // Email address availability
 
-usersRouter.get("/signUp/email/:email", (request, response) => {
+usersRouter.post("/signUp/email/availability", (request, response) => {
     const {
         email
-    } = request.params;
+    } = request.body;
 
     const {
         requestTimeout
@@ -310,7 +310,12 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
                         }
 
                         connection.query({
-                            sql: `UPDATE users SET secret = ?, registered = NOW() WHERE secret = ?`,
+                            sql: `UPDATE users SET secret = ?, registered = NOW() WHERE secret = ?;
+                                    INSERT INTO \`one-move-checkmates-scores\` (username) VALUES ('${username}');
+                                    INSERT INTO \`two-moves-checkmates-scores\` (username) VALUES ('${username}');
+                                    INSERT INTO \`three-moves-checkmates-scores\` (username) VALUES ('${username}');
+                                    INSERT INTO \`stalemates-scores\` (username) VALUES ('${username}');
+                                    INSERT INTO \`double-attacks-scores\` (username) VALUES ('${username}');`,
                             timeout: requestTimeout,
                             values: [
                                 newSecret,
@@ -358,11 +363,11 @@ usersRouter.get("/signUp/activation/:secret", (request, response) => {
 
 // Credentials verification by username
 
-usersRouter.get("/signIn/username/:username/:password", (request, response) => {
+usersRouter.post("/signIn/username", (request, response) => {
     const {
         username,
         password
-    } = request.params;
+    } = request.body;
 
     const {
         requestTimeout
@@ -430,11 +435,11 @@ usersRouter.get("/signIn/username/:username/:password", (request, response) => {
 
 // Credentials verification by email
 
-usersRouter.get("/signIn/email/:email/:password", (request, response) => {
+usersRouter.post("/signIn/email", (request, response) => {
     const {
         email,
         password
-    } = request.params;
+    } = request.body;
 
     const {
         requestTimeout
