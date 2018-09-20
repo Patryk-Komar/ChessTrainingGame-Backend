@@ -1,6 +1,6 @@
 {
   "name": "chess-training-game",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Chess Training Game back-end using Node.js with TypeScript",
   "repository": {
     "type": "git",
