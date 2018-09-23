@@ -107,6 +107,7 @@ statisticsRouter.get("/presentation", (request, response) => {
                 success: false
             });
         } else {
+            /*
             const [
                 puzzles
             ] = results;
@@ -114,6 +115,7 @@ statisticsRouter.get("/presentation", (request, response) => {
             for (const property in puzzles) {
                 chessPuzzles += puzzles[property];
             }
+            */
             response.status(200);
             response.send({
                 // chessPuzzles: chessPuzzles,

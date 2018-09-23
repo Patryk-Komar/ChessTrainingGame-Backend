@@ -39,10 +39,12 @@ connection.connect((error) => {
 import usersRouter from "./routes/users";
 import statisticsRouter from "./routes/statistics";
 import gameRouter from "./routes/game";
+import articlesRouter from "./routes/articles";
 
 app.use("/api/users", usersRouter);
 app.use("/api/statistics", statisticsRouter);
 app.use("/api/game", gameRouter);
+app.use("/api/articles", articlesRouter);
 
 app.get("*", (request, response) => {
     response.sendFile(path.join(__dirname, `${process.env.FRONTEND_PATH}/${process.env.FRONTEND_INDEX}`));
