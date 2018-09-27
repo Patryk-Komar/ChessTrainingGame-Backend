@@ -18,7 +18,7 @@ articlesRouter.get("/", (request, response) => {
 });
 
 
-// Get thematic article by title
+// Get all thematic articles
 
 articlesRouter.get("/all", (request, response) => {
     const {

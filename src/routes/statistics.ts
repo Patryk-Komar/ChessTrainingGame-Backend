@@ -90,13 +90,18 @@ statisticsRouter.get("/presentation", (request, response) => {
     const oneMoveCheckmatesTable = "\`one-move-checkmates\`";
     const twoMovesCheckmatesTable = "\`two-moves-checkmates\`";
     const threeMovesCheckmatesTable = "\`three-moves-checkmates\`";
-    // const stalematesTable = "\`stalemates\`";
-    // const doubleAttacksTable = "\`double-attacks\`";
+    const stalematesTable = "\`stalemates\`";
+    const doubleAttacksTable = "\`double-attacks\`";
     connection.query({
         sql: `SELECT
-            (SELECT COUNT(*) FROM ${oneMoveCheckmatesTable}) AS count1,
-            (SELECT COUNT(*) FROM ${twoMovesCheckmatesTable}) AS count2,
-            (SELECT COUNT(*) FROM ${threeMovesCheckmatesTable}) AS count3
+            (SELECT COUNT(*) FROM users) AS activePlayers,
+            (SELECT COUNT(*) FROM ${oneMoveCheckmatesTable}) AS oneMoveCheckmates,
+            (SELECT COUNT(*) FROM ${twoMovesCheckmatesTable}) AS twoMovesCheckmates,
+            (SELECT COUNT(*) FROM ${threeMovesCheckmatesTable}) AS threeMovesCheckmates,
+            (SELECT COUNT(*) FROM ${stalematesTable}) AS stalemates,
+            (SELECT COUNT(*) FROM ${doubleAttacksTable}) AS doubleAttacks,
+            (SELECT COUNT(*) FROM articles) AS thematicArticles,
+            (SELECT COUNT(*) FROM guides) AS strategyGuides
             FROM dual`,
         timeout: requestTimeout
     }, (error, results) => {
@@ -107,22 +112,26 @@ statisticsRouter.get("/presentation", (request, response) => {
                 success: false
             });
         } else {
-            /*
             const [
                 puzzles
             ] = results;
-            let chessPuzzles = 0;
-            for (const property in puzzles) {
-                chessPuzzles += puzzles[property];
-            }
-            */
+            const {
+                activePlayers,
+                oneMoveCheckmates,
+                twoMovesCheckmates,
+                threeMovesCheckmates,
+                stalemates,
+                doubleAttacks,
+                thematicArticles,
+                strategyGuides
+            } = puzzles;
+            const chessPuzzles = oneMoveCheckmates + twoMovesCheckmates + threeMovesCheckmates + stalemates + doubleAttacks;
             response.status(200);
             response.send({
-                // chessPuzzles: chessPuzzles,
-                chessPuzzles: 500,
-                strategyGuides: 20,
-                thematicArticles: 100,
-                forumThreads: 50,
+                activePlayers: activePlayers,
+                chessPuzzles: chessPuzzles,
+                strategyGuides: strategyGuides,
+                thematicArticles: thematicArticles,
                 success: true
             });
         }

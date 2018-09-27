@@ -10,7 +10,10 @@ const environmentConfig = {
         name: process.env.DATABASE_NAME,
         charset: process.env.DATABASE_CHARSET
     },
-    port: process.env.APPLICATION_PORT
+    port: process.env.APPLICATION_PORT,
+    paths: {
+        playersAvatars: process.env.PLAYERS_AVATARS
+    }
 };
 
 export default environmentConfig;

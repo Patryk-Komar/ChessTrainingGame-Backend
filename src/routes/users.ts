@@ -8,9 +8,12 @@ const usersRouter = express.Router();
 // Importing dependencies and configuration files
 
 import bcrypt from "bcrypt";
+import multer from "multer";
+import fs from "fs";
 
 import transporter from "../admin/transporter";
 import databaseConfig from "../config/database";
+import environmentConfig from "../config/environment";
 import connection from "../database/connection";
 import User from "../models/user";
 import activationMailTemplate from "../templates/activation-mail";
@@ -627,7 +630,7 @@ usersRouter.post("/changePassword",  (request, response) => {
         newPassword
     } = request.body;
 
-    const passwordRegex = new RegExp(/^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{8,})/);
+    const passwordRegex = new RegExp(/^[A-Za-z\d.!@#$%^^&*-_](?=.*[A-Za-z])(?=.*\d)[A-Za-z\d.!@#$%^&*-_]{7,19}$/);
 
     if (passwordRegex.test(newPassword)) {
         const {
@@ -722,6 +725,430 @@ usersRouter.post("/changePassword",  (request, response) => {
             success: false
         });
     }
+});
+
+
+// Get user avatar to display it on player profile
+
+usersRouter.get("/avatars/:secret", (request, response) => {
+    const {
+        secret
+    } = request.params;
+
+    const {
+        playersAvatars
+    } = environmentConfig.paths;
+
+    fs.exists(`${playersAvatars}/${secret}`, exists => {
+        if (exists) {
+            response.status(200);
+            response.sendFile(`${playersAvatars}/${secret}`, { root: "./" });
+        } else {
+            response.status(200);
+            response.send({
+                success: false
+            });
+        }
+    });
+});
+
+
+usersRouter.post("/avatar/get", (request, response) => {
+    const {
+        username,
+        password
+    } = request.body;
+    const {
+        requestTimeout
+    } = databaseConfig;
+
+    connection.query({
+        sql: `SELECT password, secret FROM users WHERE username = ?`,
+        timeout: requestTimeout,
+        values: [
+            username
+        ]
+    }, (error, results) => {
+        if (error || results.length !== 1) {
+            response.status(200);
+            response.send({
+                success: false
+            });
+        } else {
+            const [{
+                password: userPassword,
+                secret
+            }] = results;
+
+            bcrypt.compare(password, userPassword, (error, success) => {
+                if (!error && success) {
+
+                    const {
+                        playersAvatars
+                    } = environmentConfig.paths;
+
+                    fs.exists(`${playersAvatars}/${secret}.jpg`, exists => {
+                        if (exists) {
+                            response.status(200);
+                            response.send({
+                                path: `http://localhost:1337/api/users/avatars/${secret}.jpg`,
+                                success: true
+                            });
+                        } else {
+                            fs.exists(`${playersAvatars}/${secret}.png`, exists => {
+                                if (exists) {
+                                    response.status(200);
+                                    response.send({
+                                        path: `http://localhost:1337/api/users/avatars/${secret}.png`,
+                                        success: true
+                                    });
+                                } else {
+                                    response.status(200);
+                                    response.send({
+                                        success: false
+                                    });
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    response.status(200);
+                    response.send({
+                        success: false
+                    });
+                }
+            });
+        }
+    });
+});
+
+
+// Get user secret
+
+usersRouter.post("/secret", (request, response) => {
+    const {
+        username,
+        password
+    } = request.body;
+    const {
+        requestTimeout
+    } = databaseConfig;
+
+    connection.query({
+        sql: `SELECT password, secret FROM users WHERE username = ?`,
+        timeout: requestTimeout,
+        values: [
+            username
+        ]
+    }, (error, results) => {
+        if (error || results.length !== 1) {
+            response.status(200);
+            response.send({
+                error: error,
+                success: false
+            });
+        } else {
+            const [{
+                password: userPassword,
+                secret
+            }] = results;
+            bcrypt.compare(password, userPassword, (error, success) => {
+                if (error) {
+                    response.status(200);
+                    response.send({
+                        error: error,
+                        success: false
+                    });
+                } else if (success) {
+                    response.status(200);
+                    response.send({
+                        secret: secret,
+                        success: true
+                    });
+                } else {
+                    response.status(200);
+                    response.send({
+                        error: error,
+                        success: false
+                    });
+                }
+            });
+        }
+    });
+});
+
+
+// Upload player avatar to server
+
+const storage = multer.diskStorage({
+    destination: (request, file, callback) => {
+        const {
+            playersAvatars
+        } = environmentConfig.paths;
+        callback(undefined, playersAvatars);
+    },
+    filename: (request, file, callback) => {
+        callback(undefined, file.originalname);
+    }
+});
+
+const upload = multer({storage: storage}).single("file");
+
+usersRouter.post("/avatar/upload", (request, response) => {
+    upload(request, response, error => {
+        if (error) {
+            response.send({
+                success: false
+            });
+        }
+        else {
+            response.send({
+                success: true
+            });
+        }
+    });
+});
+
+
+// Get player scores and achievements
+
+usersRouter.post("/scores", (request, response) => {
+    const {
+        username
+    } = request.body;
+    const {
+        requestTimeout
+    } = databaseConfig;
+
+    const oneMoveCheckmatesTable = "\`one-move-checkmates\`";
+    const twoMovesCheckmatesTable = "\`two-moves-checkmates\`";
+    const threeMovesCheckmatesTable = "\`three-moves-checkmates\`";
+    const stalematesTable = "\`stalemates\`";
+    const doubleAttacksTable = "\`double-attacks\`";
+
+    connection.query({
+        sql: `SELECT
+            (SELECT COUNT(*) FROM ${oneMoveCheckmatesTable}) AS count1,
+            (SELECT COUNT(*) FROM ${twoMovesCheckmatesTable}) AS count2,
+            (SELECT COUNT(*) FROM ${threeMovesCheckmatesTable}) AS count3,
+            (SELECT COUNT(*) FROM ${stalematesTable}) AS count4,
+            (SELECT COUNT(*) FROM ${doubleAttacksTable}) AS count5
+            FROM dual`,
+        timeout: requestTimeout
+    }, (error, results) => {
+        if (error) {
+            response.status(200);
+            response.send({
+                error: error,
+                success: false
+            });
+        } else {
+            const [
+                result
+            ] = results;
+            const responseObject = {
+                scores: {
+                    oneMoveCheckmate: {
+                        completed: 0,
+                        levels: result.count1
+                    },
+                    twoMovesCheckmate: {
+                        completed: 0,
+                        levels: result.count2
+                    },
+                    threeMovesCheckmate: {
+                        completed: 0,
+                        levels: result.count3
+                    },
+                    stalemate: {
+                        completed: 0,
+                        levels: result.count4
+                    },
+                    doubleAttack: {
+                        completed: 0,
+                        levels: result.count5
+                    },
+                },
+                achievements: {
+                    oneMoveCheckmate: false,
+                    twoMovesCheckmate: false,
+                    threeMovesCheckmate: false,
+                    stalemate: false,
+                    doubleAttack: false,
+                },
+                success: false
+            };
+
+            const oneMoveCheckmatesScoresTable = "\`one-move-checkmates-scores\`";
+            const twoMovesCheckmatesScoresTable = "\`two-moves-checkmates-scores\`";
+            const threeMovesCheckmatesScoresTable = "\`three-moves-checkmates-scores\`";
+            const stalematesScoresTable = "\`stalemates-scores\`";
+            const doubleAttacksScoresTable = "\`double-attacks-scores\`";
+
+            connection.query({
+                sql: `SELECT * FROM ${oneMoveCheckmatesScoresTable} WHERE username = ?`,
+                timeout: requestTimeout,
+                values: [
+                    username
+                ]
+            }, (error, rows) => {
+                if (error) {
+                    response.status(200);
+                    response.send({
+                        error: error,
+                        success: false
+                    });
+                } else {
+                    let completedLevels = 0;
+                    for (const property in rows[0]) {
+                        if (property !== "username") {
+                            if (rows[0][property] !== null) {
+                                completedLevels++;
+                            }
+                        }
+                    }
+                    responseObject.scores.oneMoveCheckmate.completed = completedLevels;
+                    const {
+                        completed,
+                        levels
+                    } = responseObject.scores.oneMoveCheckmate;
+                    if (completed === levels) {
+                        responseObject.achievements.oneMoveCheckmate = true;
+                    }
+                    connection.query({
+                        sql: `SELECT * FROM ${twoMovesCheckmatesScoresTable} WHERE username = ?`,
+                        timeout: requestTimeout,
+                        values: [
+                            username
+                        ]
+                    }, (error, rows) => {
+                        if (error) {
+                            response.status(200);
+                            response.send({
+                                error: error,
+                                success: false
+                            });
+                        } else {
+                            completedLevels = 0;
+                            for (const property in rows[0]) {
+                                if (property !== "username") {
+                                    if (rows[0][property] !== null) {
+                                        completedLevels++;
+                                    }
+                                }
+                            }
+                            responseObject.scores.twoMovesCheckmate.completed = completedLevels;
+                            const {
+                                completed,
+                                levels
+                            } = responseObject.scores.twoMovesCheckmate;
+                            if (completed === levels) {
+                                responseObject.achievements.twoMovesCheckmate = true;
+                            }
+                            connection.query({
+                                sql: `SELECT * FROM ${threeMovesCheckmatesScoresTable} WHERE username = ?`,
+                                timeout: requestTimeout,
+                                values: [
+                                    username
+                                ]
+                            }, (error, rows) => {
+                                if (error) {
+                                    response.status(200);
+                                    response.send({
+                                        error: error,
+                                        success: false
+                                    });
+                                } else {
+                                    completedLevels = 0;
+                                    for (const property in rows[0]) {
+                                        if (property !== "username") {
+                                            if (rows[0][property] !== null) {
+                                                completedLevels++;
+                                            }
+                                        }
+                                    }
+                                    responseObject.scores.threeMovesCheckmate.completed = completedLevels;
+                                    const {
+                                        completed,
+                                        levels
+                                    } = responseObject.scores.threeMovesCheckmate;
+                                    if (completed === levels) {
+                                        responseObject.achievements.threeMovesCheckmate = true;
+                                    }
+                                    connection.query({
+                                        sql: `SELECT * FROM ${stalematesScoresTable} WHERE username = ?`,
+                                        timeout: requestTimeout,
+                                        values: [
+                                            username
+                                        ]
+                                    }, (error, rows) => {
+                                        if (error) {
+                                            response.status(200);
+                                            response.send({
+                                                error: error,
+                                                success: false
+                                            });
+                                        } else {
+                                            completedLevels = 0;
+                                            for (const property in rows[0]) {
+                                                if (property !== "username") {
+                                                    if (rows[0][property] !== null) {
+                                                        completedLevels++;
+                                                    }
+                                                }
+                                            }
+                                            responseObject.scores.stalemate.completed = completedLevels;
+                                            const {
+                                                completed,
+                                                levels
+                                            } = responseObject.scores.stalemate;
+                                            if (completed === levels) {
+                                                responseObject.achievements.stalemate = true;
+                                            }
+                                            connection.query({
+                                                sql: `SELECT * FROM ${doubleAttacksScoresTable} WHERE username = ?`,
+                                                timeout: requestTimeout,
+                                                values: [
+                                                    username
+                                                ]
+                                            }, (error, rows) => {
+                                                if (error) {
+                                                    response.status(200);
+                                                    response.send({
+                                                        error: error,
+                                                        success: false
+                                                    });
+                                                } else {
+                                                    completedLevels = 0;
+                                                    for (const property in rows[0]) {
+                                                        if (property !== "username") {
+                                                            if (rows[0][property] !== null) {
+                                                                completedLevels++;
+                                                            }
+                                                        }
+                                                    }
+                                                    responseObject.scores.doubleAttack.completed = completedLevels;
+                                                    const {
+                                                        completed,
+                                                        levels
+                                                    } = responseObject.scores.doubleAttack;
+                                                    if (completed === levels) {
+                                                        responseObject.achievements.doubleAttack = true;
+                                                    }
+                                                    responseObject.success = true;
+                                                    response.send(responseObject);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 });
 
 
