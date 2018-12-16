@@ -1,4 +1,4 @@
-import  mysql from "mysql";
+import mysql from "mysql";
 
 import environmentConfig from "./../config/environment";
 
@@ -9,7 +9,7 @@ const {
 const connection = mysql.createConnection({
     host: database.host,
     user: database.user,
-    password : database.password,
+    password: database.password,
     database: database.name,
     charset: database.charset,
     multipleStatements: true
